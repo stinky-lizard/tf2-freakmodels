@@ -230,7 +230,7 @@ int createWearable(int target, char[] model)
 	
 	if (!CheckModelGood(model))
 	{
-		LogMessage("Warning: A non-precached skin model was about to be used. This would've crashed the server. (Error 32)");
+		LogMessage("Warning: A non-precached skin model was about to be used. This would've caused a crash. (Error 32)");
 		SetEntityModel(rSkinItem, "models/error.mdl");
 		return rSkinItem;
 	}
@@ -342,9 +342,10 @@ void SetAnim(int client, char[] model)
 {
 	if (!CheckModelGood(model))
 	{
-		LogMessage("Warning: A non-precached animation model was about to be used. This would've crashed the server. (Error 31)");
+		LogMessage("Warning: A non-precached animation model was about to be used. This would've caused a crash. (Error 31)");
 		return;
 	}
+
 	SetVariantString(model);
 	AcceptEntityInput(client, "SetCustomModel");
 	SetEntProp(client, Prop_Send, "m_bUseClassAnimations", 1);
@@ -449,6 +450,13 @@ Action MainCommand(int client, int args)
 			//TODO do this correctly
 			reset = true;
 		}
+	}
+
+	if (target == 0)
+	{
+		//target is server - only possible if the server calls it w/o -t
+		ReplyToCommand(client, "Please specify a target.");
+		return Plugin_Handled;
 	}
 
 	if (!validArgEntered)
@@ -564,7 +572,8 @@ Action MainCommand(int client, int args)
 
 	if (animPath[0])
 	{
-		SetAnim(target, animPath);
+		if (SetAnim(target, animPath) == SETSKIN_TARGETNOTEAM)
+			ReplyToCommand(client, "You can't set %s animation; %s aren't in the game!", targetString, (client == target) ? "you" : "they");
 
 		GetTargetString(client, target, targetString, sizeof(targetString));
 		if (useFullpaths) 
