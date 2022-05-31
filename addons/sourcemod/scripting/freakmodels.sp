@@ -9,7 +9,7 @@
 #include <freakmodels-equip>
 #include <freakmodels-cleanup>
 #include <freakmodels-manage>
-// #include <freakmodels-menu>
+#include <freakmodels-menu>
 #include <freakmodels-fixes>
 
 #pragma semicolon 1
@@ -299,13 +299,13 @@ Action MainCommand(int client, int args)
 		if (args > 0)
 		{
 			ReplyToCommand(client, "Sorry, couldn't understand your arguments.");
-			ReplyToCommand(client, "Enter `freakmodel -help` to print help in the console.");
-			// ReplyToCommand(client, "Enter `freakmodel -help` to print help in the console, or simply `freakmodel` to use a menu.");
+			// ReplyToCommand(client, "Enter `freakmodel -help` to print help in the console.");
+			ReplyToCommand(client, "Enter `freakmodel -help` to print help in the console, or simply `freakmodel` to use a menu.");
 		}
 		else 
 		{
-			// MainCommandMenu(client);
-			ReplyToCommand(client, "Enter `freakmodel -help` to print help in the console.");
+			MainCommandMenu(client);
+			// ReplyToCommand(client, "Enter `freakmodel -help` to print help in the console.");
 		}
 		return Plugin_Handled;
 	}

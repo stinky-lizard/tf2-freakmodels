@@ -17,7 +17,7 @@ void RefreshConfigFromFile()
 	if (config != null) delete config;
 
 	config = ReadModelsFromConfig();
-
+	
 	if (!config.JumpToKey("named_models"))
 		//there is no models section
 		LogMessage("Warning: Failed to read from config file. Consider checking the file, or deleting the file to initialize it.");
@@ -31,6 +31,8 @@ void RefreshConfigFromFile()
 		LogMessage("Warning: admin requirements aren't defined in the config file. Defaulting to ADMFLAG_GENERIC.");
 		config.SetNum("RequiredAdmin", ADMFLAG_GENERIC);
 	}
+
+	//todo: lowercase all names & save case in separate sub-key
 
 	config.Rewind();
 }
@@ -71,7 +73,7 @@ void CreateConfigFile(bool addClasses=true)
 
 	//add section for non-named precached models
 	models.JumpToKey("precache_no_name", true);
-	models.SetString("placeholder (just to write this section to the file)", "models/error.mdl");
+	models.SetString("error (placeholder)", "models/error.mdl");
 	models.Rewind();
 
 
@@ -177,10 +179,6 @@ bool GetModelFromConfig(char[] name, char[] path, int pathsize)
 	
 	config.JumpToKey("named_models");
 
-	//it seems no matter the project, you will eventually have to use theoretical concepts taught in CS classes.
-	//for me, this moment is now with search algorithms. i was never good with them
-	//let's just do a simple depth-first search; there will not be enough models & groups to make it matter.
-
 	bool out = SearchForModel(name, path, pathsize);
 
 	config.Rewind();
@@ -198,9 +196,39 @@ bool CheckModelGood(char[] model)
  * 
  * @return            True if a model was precached, false if there were none to precache.
  */
-bool PrecacheAllModelsInCurSection(bool intheweeds = false)
+bool PrecacheAllModelsInCurSection()
 {
-	bool out = false;
+	ArrayList modelNames = new ArrayList(PLATFORM_MAX_PATH);
+	ArrayList modelPaths = new ArrayList(PLATFORM_MAX_PATH);
+
+	bool out = GetAllModelsInCurSection(modelNames, modelPaths);
+
+	for (int i = 0; i < modelPaths.Length; i++)
+	{
+		static char path[PLATFORM_MAX_PATH];
+		
+		modelPaths.GetString(i, path, sizeof(path));
+
+		if (!IsModelPrecached(path)) PrecacheModel(path);
+	}
+
+	delete modelNames;
+	delete modelPaths;
+
+	return out;
+}
+
+/**
+ * Iterates through the config and pushes all model names & paths in the current section to the given lists.
+ * 
+ * @note The data will be pushed to the end of the lists. Block size should be PLATFORM_MAX_PATH.
+ * @param outModelNames     OUTPUT: The model names, in order of their definition in the config file (depth-first).
+ * @param outModelPaths     OUTPUT: The model paths, in order of their definition in the config file (depth-first).
+ * @return                  false if there were no models, true otherwise.
+ */
+bool GetAllModelsInCurSection(ArrayList outModelNames, ArrayList outModelPaths, bool includeDuplicatePaths = true)
+{
+	bool intheweeds = false, out = false;
 
 	do
 	{
@@ -209,7 +237,7 @@ bool PrecacheAllModelsInCurSection(bool intheweeds = false)
 			//current key is a filled section
 
 			//if the recursive call returns true, we want that to propogate, so we use ||
-			out = PrecacheAllModelsInCurSection(true) || out;
+			out = GetAllModelsInCurSection_Recur(outModelNames, outModelPaths, includeDuplicatePaths, true) || out;
 			config.GoBack();
 		}
 		else
@@ -220,23 +248,76 @@ bool PrecacheAllModelsInCurSection(bool intheweeds = false)
 				//Current key is a "value" key.
 				out = true;
 
-				char modelPath[PLATFORM_MAX_PATH];
+				char modelPath[PLATFORM_MAX_PATH], modelName[PLATFORM_MAX_PATH];
+
 				config.GetString(NULL_STRING, modelPath, sizeof(modelPath));
+				config.GetSectionName(modelName, sizeof(modelName));
 
 				//does this model exist?
 				if (!FileExists(modelPath, true))
 				{
-					char curSectionName[PLATFORM_MAX_PATH];
-					config.GetSectionName(curSectionName, sizeof(curSectionName));
-					LogMessage("Warning: The model named %s in the config file does not correspond to a real file.", curSectionName);
+					LogMessage("Warning: The model named %s in the config file does not correspond to a real file.", modelName);
 					continue;
 				}
 
-				//is this model already precached?
-				if (IsModelPrecached(modelPath))
+				//is this model already added to the list?
+				if (outModelNames.FindString(modelName) > -1) continue;
+				
+				if (!includeDuplicatePaths && outModelPaths.FindString(modelPath) > -1) continue;
+
+				outModelNames.PushString(modelName);
+				outModelPaths.PushString(modelPath);
+			}
+		}
+	}
+	while(intheweeds && config.GotoNextKey(false));
+
+	return out;
+}
+
+/**
+ * Same as GetAllModelsInCurSection, is just hidden so it can't be misused.
+ */
+static bool GetAllModelsInCurSection_Recur(ArrayList outModelNames, ArrayList outModelPaths, bool includeDuplicatePaths = true, bool intheweeds = false)
+{
+	bool out = false;
+
+	do
+	{
+		if (config.GotoFirstSubKey(false))
+		{
+			//current key is a filled section
+
+			//if the recursive call returns true, we want that to propogate, so we use ||
+			out = GetAllModelsInCurSection_Recur(outModelNames, outModelPaths, includeDuplicatePaths, true) || out;
+			config.GoBack();
+		}
+		else
+		{
+			//Current key is a "value" key, or an empty section.
+			if (config.GetDataType(NULL_STRING) != KvData_None)
+			{
+				//Current key is a "value" key.
+				out = true;
+
+				char modelPath[PLATFORM_MAX_PATH], modelName[PLATFORM_MAX_PATH];
+
+				config.GetString(NULL_STRING, modelPath, sizeof(modelPath));
+				config.GetSectionName(modelName, sizeof(modelName));
+
+				//does this model exist?
+				if (!FileExists(modelPath, true))
+				{
+					LogMessage("Warning: The model named %s in the config file does not correspond to a real file.", modelName);
+					continue;
+				}
+
+				//is this model already added to the list?
+				if (outModelNames.FindString(modelName) > -1)
 					continue;
 
-				PrecacheModel(modelPath);
+				outModelNames.PushString(modelName);
+				outModelPaths.PushString(modelPath);
 			}
 		}
 	}
