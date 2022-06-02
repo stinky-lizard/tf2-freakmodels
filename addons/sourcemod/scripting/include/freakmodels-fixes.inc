@@ -41,10 +41,6 @@ public Action Timer_CheckAnimAfterInventoryApplied(Handle timer, int userId)
 	char curAnimPath[PLATFORM_MAX_PATH];
 	GetClientModel(client, curAnimPath, sizeof(curAnimPath));
 
-	//test
-	PrintToChatAll("%s", setAnimPath);
-	PrintToChatAll("%s", curAnimPath);
-
 	if (!StrEqual(curAnimPath, setAnimPath))
 		SetAnim(client, setAnimPath);
 
