@@ -119,7 +119,7 @@ FuncOutput SetSkin(int target, char[] skinModel)
 	
 	PlayerData pData = PlayerData(target);
 	pData.rSkinItem = rSkinItem;
-	pData.SetSkinPath(skinModel);
+	pData.SetStr("SkinPath", skinModel);
 	
 	//make player (i.e. anim model) invisible
 	MakePlayerInvisible(target);
@@ -167,7 +167,7 @@ bool RemoveSkin(int target)
 	}
 
 	pData.rSkinItem = 0;
-	pData.SetSkinPath("");
+	pData.SetStr("SkinPath", "");
 
 	return skinRemoved;
 }
@@ -185,7 +185,7 @@ void SetAnim(int client, char[] model)
 	AcceptEntityInput(client, "SetCustomModel");
 	SetEntProp(client, Prop_Send, "m_bUseClassAnimations", 1);
 
-	PlayerData(client).SetAnimPath(model);
+	PlayerData(client).SetStr("AnimPath", model);
 }
 
 //reset the client model, which dictates their animations (and appearance with no skin)
@@ -194,5 +194,5 @@ void RemoveAnim(int target)
 	SetVariantString("");
 	AcceptEntityInput(target, "SetCustomModel");
 
-	PlayerData(target).SetAnimPath("");
+	PlayerData(target).SetStr("AnimPath", "");
 }

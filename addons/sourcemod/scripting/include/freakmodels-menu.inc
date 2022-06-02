@@ -42,7 +42,8 @@ static int MenuHandler_MainCommand(Menu menu, MenuAction action, int param1, int
 
             if (StrEqual(selectedItem, "#info"))
             {
-
+                //todo: make target diff from client for now
+                PrintPlayerInfo(param2, param2);
             }
             else if (StrEqual(selectedItem, "#animation"))
             {
@@ -101,4 +102,71 @@ static void SetModeModelSelect(Menu menu, int client, int operation)
     menu.AddItem("#custom", "Custom Model Path");
 
     menu.Display(client, MENU_TIME_FOREVER);
+}
+
+static void PrintPlayerInfo(int client, int target)
+{
+    PlayerData pData = PlayerData(target);
+
+    char targetString[MAX_NAME_LENGTH + 10];
+    if (client == target)
+        strcopy(targetString, sizeof(targetString), "You have");
+    else
+    {
+        GetClientName(target, targetString, sizeof(targetString));
+        StrCat(targetString, sizeof(targetString), " has")
+    }
+
+    char tmppath[PLATFORM_MAX_PATH];
+    char tmpname[PLATFORM_MAX_PATH];
+
+
+    pData.GetStr("AnimPath", tmppath, sizeof(tmppath));
+    if (tmppath[0])
+    {
+        pData.GetStr("AnimName", tmpname, sizeof(tmpname));
+        if (tmpname[0])
+            ReplyToCommand(client, "%s the animations of \"%s\".", targetString, tmpname);
+        else 
+            ReplyToCommand(client, "%s the animations of %s.", targetString, tmppath);
+    }
+
+    GetTargetString(client, target, targetString, sizeof(targetString));
+    if (client == target) targetString[0] = 'Y'; //make it uppercase
+
+    pData.GetStr("SkinPath", tmppath, sizeof(tmppath));
+    if (tmppath[0])
+    {
+        pData.GetStr("SkinName", tmpname, sizeof(tmpname));
+        if (tmpname[0])
+            ReplyToCommand(client, "%s skin is \"%s\".", targetString, tmpname);
+        else 
+            ReplyToCommand(client, "%s skin is %s.", targetString, tmppath);
+    }
+
+    //todo: equips
+    KeyValues equips = new KeyValues("Equips");
+    bool hasEquippable = false;
+
+    int slotsLength = pData.equippableSlotsLength;
+
+    for (int i = 1; i <= slotsLength; i++)
+    {
+        if (pData.GetEquippable(i))
+        {
+            static char slotStr[4];
+            hasEquippable = true;
+
+            IntToString(i, slotStr, sizeof(slotStr));
+
+            equips.SetNum(slotStr, i);
+        }
+    }
+
+    if (hasEquippable)
+    {
+        
+    }
+
+    delete equips;
 }

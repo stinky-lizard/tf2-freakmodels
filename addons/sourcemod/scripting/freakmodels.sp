@@ -507,6 +507,8 @@ void SetModelsFromData(int client)
 			}
 			else
 			{
+				PlayerData(target).SetStr("AnimName", data.animName);
+
 				ReplyToCommand(client, "Successfully set %s animations to \"%s\"", targetString, data.animName);
 
 				if (client != target) PrintToChat(target, "%s set your animations to %s.", clientName, data.animName);
@@ -528,6 +530,8 @@ void SetModelsFromData(int client)
 			}
 			else
 			{
+				PlayerData(target).SetStr("SkinName", data.skinName);
+
 				ReplyToCommand(client, "Successfully set %s skin to \"%s\"", targetString, data.skinName);
 
 				if (client != target) PrintToChat(target, "%s set your skin to %s.", clientName, data.skinName);

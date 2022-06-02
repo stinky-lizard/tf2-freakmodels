@@ -9,7 +9,7 @@ public void OnInventoryApplied(Event event, const char[] name, bool dontBroadcas
 		
 	//does this client have an animation set?
 	char animPath[PLATFORM_MAX_PATH];
-	PlayerData(clientId).GetAnimPath(animPath, sizeof(animPath));
+	PlayerData(clientId).GetStr("AnimPath", animPath, sizeof(animPath));
 	
 	if (animPath[0])
 	{	
@@ -24,7 +24,7 @@ public Action Timer_InventoryApplied(Handle timer, int userId)
 	if (!IsValidClient(client)) return Plugin_Handled;
 	
 	char animPath[PLATFORM_MAX_PATH];
-	PlayerData(client).GetAnimPath(animPath, sizeof(animPath));
+	PlayerData(client).GetStr("AnimPath", animPath, sizeof(animPath));
 	SetAnim(client, animPath);
 	
 	return Plugin_Handled;
@@ -36,7 +36,7 @@ public Action Timer_CheckAnimAfterInventoryApplied(Handle timer, int userId)
 	if (!IsValidClient(client)) return Plugin_Handled;
 
 	char setAnimPath[PLATFORM_MAX_PATH];
-	PlayerData(client).GetAnimPath(setAnimPath, sizeof(setAnimPath));
+	PlayerData(client).GetStr("AnimPath", setAnimPath, sizeof(setAnimPath));
 
 	char curAnimPath[PLATFORM_MAX_PATH];
 	GetClientModel(client, curAnimPath, sizeof(curAnimPath));
