@@ -45,23 +45,19 @@ Action EquipCommand(int client, int args)
 
 			PlayerData pData = PlayerData(targetList[p]);
 
-			static int slotsLength;
-			slotsLength = pData.equippableSlotsLength;
+			ArrayList slots = pData.GetFilledSlots();
 
-			if (slotsLength < 1)
-			{
-				ReplyToCommand(client, "%s has no equipped models.", playerName);
-				continue;
-			}
+			if (slots.Length < 1) ReplyToCommand(client, "%s has no equipped models.", playerName);
 
-			for (int i = 1; i <= slotsLength; i++)
+			for (int i = 0; i < slots.Length; i++)
 			{
-				if (pData.GetEquippable(i) && IsValidEntity(pData.GetEquippable(i)))
-				{			
-					GetEntPropString(pData.GetEquippable(i), Prop_Data, "m_ModelName", modelPath, sizeof(modelPath));
-					ReplyToCommand(client, "%s: Slot %i: %s", playerName, i, modelPath)
+				if (IsValidEntity(pData.GetEquippable(slots.Get(i))))
+				{
+					GetEntPropString(pData.GetEquippable(slots.Get(i)), Prop_Data, "m_ModelName", modelPath, sizeof(modelPath));
+					ReplyToCommand(client, "%s: Slot %i: %s", playerName, slots.Get(i), modelPath);
 				}
 			}
+			delete slots;
 		}
 	}
 	else if (operation[0] == 'r')
@@ -130,13 +126,15 @@ Action EquipCommand(int client, int args)
 				}
 
 				PlayerData pData = PlayerData(targetList[i]);
-				int max = pData.equippableSlotsLength;
-				for (int j = 1; j <= max; j++)
+				ArrayList slots = pData.GetFilledSlots();
+				for (int j = 0; j < slots.Length; j++)
 				{
-					if (pData.GetEquippable(j) && IsValidEntity(pData.GetEquippable(j)))
-						RemoveEquippable(targetList[i], j);
+					if (IsValidEntity(pData.GetEquippable(slots.Get(j))))
+						RemoveEquippable(targetList[i], slots.Get(j));
 				}
 				pData.InitEquipList();
+
+				delete slots;
 			}
 		}
 		else
@@ -145,7 +143,21 @@ Action EquipCommand(int client, int args)
 
 			for (int i = 0; i < targetsFound; i++)
 			{
-				GetEntPropString(PlayerData(targetList[i]).GetEquippable(slot), Prop_Data, "m_ModelName", modelPath, sizeof(modelPath));
+				int equip = PlayerData(targetList[i]).GetEquippable(slot);
+				if (!equip)
+				{
+					if (targetList[i] == client) ReplyToCommand(client, "You have no FreakModels equip in slot %i.", slot);
+					else
+					{
+						GetClientName(targetList[i], playerName, sizeof(playerName));
+						ReplyToCommand(client, "%s has no FreakModels equip in slot %i.", playerName, slot);
+					} 
+					continue;
+				}
+
+				RemoveEquippable(targetList[i], slot);
+
+				GetEntPropString(equip, Prop_Data, "m_ModelName", modelPath, sizeof(modelPath));
 				if (targetList[i] == client) ReplyToCommand(client, "Removing your FreakModels equip in slot %i. (%s)", slot, modelPath);
 				else 
 				{
@@ -153,7 +165,6 @@ Action EquipCommand(int client, int args)
 					ReplyToCommand(client, "Removing %s's FreakModels equip in slot %i. (%s)", playerName, slot, modelPath);
 				}
 
-				RemoveEquippable(targetList[i], slot);
 			}
 		}
 	}
@@ -286,43 +297,6 @@ Action EquipCommand(int client, int args)
 	return Plugin_Handled;
 }
 
-
-FuncOutput AddEquippable(int target, char[] modelPath, int slot)
-{
-    bool removedOne = false;
-
-    PlayerData pData = PlayerData(target);
-
-    //if there's an existing item, remove it
-    if (pData.GetEquippable(slot))
-    {
-        RemoveEquippable(target, slot);
-        removedOne = true;
-    }
-
-    int rItem = 0;
-
-    CreateWearable(target, modelPath, rItem);
-
-    pData.SetEquippable(rItem, slot);
-
-
-    return removedOne ? REMOVEDEQUIP : GOOD;
-}
-
-void RemoveEquippable(int target, int slot)
-{
-	PlayerData pData = PlayerData(target);
-	int rItem = pData.GetEquippable(slot);
-	if (!rItem) return; //its already 0
-
-	if (IsValidEntity(rItem)) TF2_RemoveWearable(target, EntRefToEntIndex(rItem));
-
-	if (IsValidEntity(rItem)) RemoveEntity(rItem);
-
-	pData.SetEquippable(0, slot);
-}
-
 void Equip_PrintHelp(int client)
 {
 	ReplyToCommand(client, "Printing fm_equip help in your console.");
@@ -411,3 +385,79 @@ public Action Equip_Timer_HelpPrint(Handle timer, Handle hndl)
 	list.Set(1, list.Get(1) + 1);
 	return Plugin_Handled;
 }
+
+FuncOutput AddEquippable(int target, char[] modelPath, int slot)
+{
+    bool removedOne = false;
+
+    PlayerData pData = PlayerData(target);
+
+    //if there's an existing item, remove it
+    if (pData.GetEquippable(slot))
+    {
+        RemoveEquippable(target, slot);
+        removedOne = true;
+    }
+
+    int rItem = 0;
+
+    CreateWearable(target, modelPath, rItem);
+
+    pData.SetEquippable(rItem, slot);
+
+
+    return removedOne ? REMOVEDEQUIP : GOOD;
+}
+
+void RemoveEquippable(int target, int slot)
+{
+	PlayerData pData = PlayerData(target);
+	int rItem = pData.GetEquippable(slot);
+	if (!rItem) return; //its already 0
+
+	if (IsValidEntity(rItem)) TF2_RemoveWearable(target, EntRefToEntIndex(rItem));
+
+	if (IsValidEntity(rItem)) RemoveEntity(rItem);
+
+	pData.SetEquippable(0, slot);
+}
+
+/**
+ * Gets the amount of bytes written to the string buffer with GetEquippablesInfo.
+ * Obviously this will change when adding/removing/changing equippables.
+ *
+ * @return number of bytes written by GetEquippablesInfo.
+ */
+int GetEquippablesInfoSize(int client, int target)
+{
+	int size = 2; //terminator + safety
+
+	char targetName[MAX_NAME_LENGTH];
+
+	ArrayList slots = PlayerData(target).GetFilledSlots();
+
+	//first check if they even have anything
+	if (slots.Length < 1)
+	{
+		if (client == target)
+			size += strlen("You have no equipped models.");
+		else
+		{
+			size += strlen(" has no equipped models.");
+			GetClientName(target, targetName, sizeof(targetName));
+			size += strlen(targetName);
+		}
+	}
+	else
+	{
+		size += strlen(" has:");
+		size += 2; //+ \n
+		//todo
+	}
+
+	delete slots;
+	return size;
+}
+
+//todo: void GetEquippablesInfo(int client, int buffer, int bufferSize)
+//todo: int GetEquipppablesInfoSize(int client)

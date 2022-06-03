@@ -43,7 +43,7 @@ static int MenuHandler_MainCommand(Menu menu, MenuAction action, int param1, int
             if (StrEqual(selectedItem, "#info"))
             {
                 //todo: make target diff from client for now
-                PrintPlayerInfo(param2, param2);
+                PrintPlayerInfo(param1, param1);
             }
             else if (StrEqual(selectedItem, "#animation"))
             {
@@ -131,42 +131,40 @@ static void PrintPlayerInfo(int client, int target)
             ReplyToCommand(client, "%s the animations of %s.", targetString, tmppath);
     }
 
-    GetTargetString(client, target, targetString, sizeof(targetString));
-    if (client == target) targetString[0] = 'Y'; //make it uppercase
+    char targetString2[MAX_NAME_LENGTH + 10];
+
+    GetTargetString(client, target, targetString2, sizeof(targetString2));
+    if (client == target) targetString2[0] = 'Y'; //make it uppercase
 
     pData.GetStr("SkinPath", tmppath, sizeof(tmppath));
     if (tmppath[0])
     {
         pData.GetStr("SkinName", tmpname, sizeof(tmpname));
         if (tmpname[0])
-            ReplyToCommand(client, "%s skin is \"%s\".", targetString, tmpname);
+            ReplyToCommand(client, "%s skin is \"%s\".", targetString2, tmpname);
         else 
-            ReplyToCommand(client, "%s skin is %s.", targetString, tmppath);
+            ReplyToCommand(client, "%s skin is %s.", targetString2, tmppath);
     }
 
-    //todo: equips
-    KeyValues equips = new KeyValues("Equips");
-    bool hasEquippable = false;
+    ArrayList slots = pData.GetFilledSlots();
 
-    int slotsLength = pData.equippableSlotsLength;
+    if (slots.Length > 0)
+        ReplyToCommand(client, "%s %i equipped %s: ", targetString, slots.Length, slots.Length > 1 ? "models" : "model");
 
-    for (int i = 1; i <= slotsLength; i++)
+    char modelStr[PLATFORM_MAX_PATH];
+    for (int i = 0; i < slots.Length; i++)
     {
-        if (pData.GetEquippable(i))
+        pData.GetEquippableName(slots.Get(i), modelStr, sizeof(modelStr));
+
+        if (modelStr[0])
+            //there is a name
+            ReplyToCommand(client, "- Slot %i: \"%s\"", slots.Get(i), modelStr);
+        else
         {
-            static char slotStr[4];
-            hasEquippable = true;
-
-            IntToString(i, slotStr, sizeof(slotStr));
-
-            equips.SetNum(slotStr, i);
+            GetEntPropString(pData.GetEquippable(slots.Get(i)), Prop_Data, "m_ModelName", modelStr, sizeof(modelStr));
+            ReplyToCommand(client, "- Slot %i: %s", slots.Get(i), modelStr);
         }
     }
 
-    if (hasEquippable)
-    {
-        
-    }
-
-    delete equips;
+    delete slots;
 }

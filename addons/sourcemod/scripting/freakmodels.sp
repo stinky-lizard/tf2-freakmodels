@@ -15,7 +15,7 @@
 #pragma semicolon 1
 #pragma newdecls required
 
-#define PLUGIN_VERSION "1.3"
+#define PLUGIN_VERSION "1.4"
 
 
 public Plugin myinfo = 
@@ -148,11 +148,13 @@ public void OnPluginEnd()
 {
 	for (int i = 0; i < PLAYERSDATASIZE; i++)
 	{
-		if (PlayerData(i).rSkinItem)
+		if (PlayerData(i).userId)
 		{
-			//there's a skin, whether it's real or deleted somehow
+			//there has been data set for this player
 			RemoveSkin(i);
-			PrintToChat(i, "FreakModels is being unloaded or reloaded. Your skin has been removed (but feel free to re-apply it!)");
+			RemoveAnim(i);
+
+			PrintToChat(i, "FreakModels is being unloaded or reloaded. Any customizations of yours have been removed (but feel free to re-apply them!");
 		}
 
 		PlayerData(i).ClearData();
@@ -166,7 +168,7 @@ public void OnPluginEnd()
 public void OnClientDisconnect(int client)
 {
 	RemoveSkin(client);
-	//dont need to manage the anim
+	//dont need to manage the anim; its data is already reset w cleardata
 	PlayerData(client).ClearData();
 }
 
@@ -174,7 +176,7 @@ public void OnEntityDestroyed(int entity)
 {
 	char classname[MAX_NAME_LENGTH];
 	GetEntityClassname(entity, classname, sizeof(classname));
-	if (!(StrEqual(classname, "tf_wearable", false) || StrEqual(classname, "playermodel_wearable", false)))
+	if (!(StrEqual(classname, "tf_wearable", false) || StrEqual(classname, "freakmodel_wearable", false)))
 		//it ain't a wearable, def isn't ours
 		return;
 	
@@ -618,6 +620,7 @@ void PrintHelp(int client)
 	ReplyToCommand(client, "Printing help in your console.");
 	//this is horrible but ReplyToCommand doesn't want to print in the right order without it :(
 	//list is this: [userId, lineNum]
+
 	ArrayList list = new ArrayList();
 	if (client < 1)
 	{

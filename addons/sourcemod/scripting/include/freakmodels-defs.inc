@@ -59,6 +59,7 @@ ModelChangeData g_clientsCommandData[MAXPLAYERS + 1];
 // Handle regularCleanupTimer = null;
 
 #define PLAYERSDATASIZE (MAXPLAYERS + 1)
+#define MAXINTLENGTH 22 //64 bit ints are up to 19 characters long, + 1 for sign, + 1 for terminator, + 1 for safety
 
 //hidden - only accessible with the PlayerData methodmap
 static PlayerDataStruct g_playersData[PLAYERSDATASIZE];
@@ -70,7 +71,22 @@ methodmap PlayerData
 {
 	public PlayerData(int clientId)
 	{
-		if (IsValidClient(clientId)) g_playersData[clientId].userId = GetClientUserId(clientId);
+		if (IsValidClient(clientId))
+		{
+			int uid = GetClientUserId(clientId)
+			if (g_playersData[clientId].userId && g_playersData[clientId].userId != uid)
+			{
+				//there is a user id, but its a different id than what we had before!
+				//the actual player has changed, but ClearData was never called!
+				//could throw an error, but in the event this does happen there's a cleaner solution
+
+				//had to move this down bc methodmaps arent FREAKING hoisted >:(
+				UserIdIsDifferent(clientId);
+
+				//the data is now cleared
+			}
+			g_playersData[clientId].userId = uid;
+		} 
 		return view_as<PlayerData>(clientId);
 	}
 	
@@ -82,11 +98,6 @@ methodmap PlayerData
 	property int userId
 	{
 		public get() { return g_playersData[this.clientId].userId; }
-	}
-
-	property int equippableSlotsLength
-	{
-		public get() { return g_playersData[this.clientId].equippedItems.Length; }
 	}
 
 	property int rSkinItem
@@ -109,8 +120,10 @@ methodmap PlayerData
 		//cant use SetSkinPath/SetAnimPath bc methodmaps and their members aren't hoisted :(
 		//reset skin path
 		strcopy(g_playersData[this.clientId].skinPath, PLATFORM_MAX_PATH, "");
+		strcopy(g_playersData[this.clientId].skinName, PLATFORM_MAX_PATH, "");
 		//reset anim path
 		strcopy(g_playersData[this.clientId].animPath, PLATFORM_MAX_PATH, "");
+		strcopy(g_playersData[this.clientId].animName, PLATFORM_MAX_PATH, "");
 
 		this.rSkinItem = 0;
 		
@@ -147,28 +160,17 @@ methodmap PlayerData
 
 	public void SetStr(char[] property, char[] data)
 	{
-		//we should not be allowed to set the props of a nonexistent player, for obvious reasons.
-		if (StrEqual(property, "skinpath", false))
-		{
-			this.CheckValid();
-			strcopy(g_playersData[this.clientId].skinPath, PLATFORM_MAX_PATH, data);
-		}
-		else if (StrEqual(property, "skinname", false))
-		{
-			this.CheckValid();
-			strcopy(g_playersData[this.clientId].skinName, PLATFORM_MAX_PATH, data);
-		}
-		else if (StrEqual(property, "animpath", false))
-		{
-			this.CheckValid();
-			strcopy(g_playersData[this.clientId].animPath, PLATFORM_MAX_PATH, data);
-		}
-		else if (StrEqual(property, "animname", false))
-		{
-			this.CheckValid();
-			strcopy(g_playersData[this.clientId].animName, PLATFORM_MAX_PATH, data);
+		//we should not be allowed to set the props of a nonexistent player, for obvious reasons.		
+		this.CheckValid();
 
-		}
+		if (StrEqual(property, "skinpath", false))
+			strcopy(g_playersData[this.clientId].skinPath, PLATFORM_MAX_PATH, data);
+		else if (StrEqual(property, "skinname", false))
+			strcopy(g_playersData[this.clientId].skinName, PLATFORM_MAX_PATH, data);
+		else if (StrEqual(property, "animpath", false))
+			strcopy(g_playersData[this.clientId].animPath, PLATFORM_MAX_PATH, data);
+		else if (StrEqual(property, "animname", false))
+			strcopy(g_playersData[this.clientId].animName, PLATFORM_MAX_PATH, data);
 		else
 			ThrowError("PlayerData.SetStr property is invalid.");
 
@@ -182,13 +184,17 @@ methodmap PlayerData
 
 		KeyValues equips = g_playersData[this.clientId].equippedItems;
 
-		//creates a new char[] with the length of the digits of slot, + 1 for terminator, + 1 for safety
-		int slotLen = RoundToFloor(Logarithm(float(slot))) + 3;
-		char[] slotStr = new char[slotLen];
+		char slotStr[MAXINTLENGTH];
+		IntToString(slot, slotStr, sizeof(slotStr));
 
-		IntToString(slot, slotStr, slotLen);
-
-		equips.SetNum(slotStr, itemReference);
+		if (itemReference == 0)
+		{
+			equips.JumpToKey(slotStr);
+			equips.DeleteThis()
+			equips.GoBack();
+		}
+		else
+			equips.SetNum(slotStr, itemReference);
 
 		if (name[0])
 			g_playersData[this.clientId].equippedItemNames.SetString(slotStr, name);
@@ -197,20 +203,59 @@ methodmap PlayerData
 	public int GetEquippable(int slot)
 	{
 
-		ArrayList list = g_playersData[this.clientId].equippedItems;
-		if (list.Length < slot) return 0;
-		else return list.Get(slot - 1);
+		KeyValues equips = g_playersData[this.clientId].equippedItems;
+
+		char slotStr[MAXINTLENGTH];
+		IntToString(slot, slotStr, sizeof(slotStr));
+
+
+		return equips.GetNum(slotStr);
 	}
 
 	public void GetEquippableName(int slot, char[] buffer, int bufferSize)
 	{
-		ArrayList list = g_playersData[this.clientId].equippedItemNames;
-		char[] test = new char[bufferSize];
+		KeyValues equips = g_playersData[this.clientId].equippedItemNames;
 
-		list.GetString(slot - 1, test, bufferSize);
-		if (test[0]) strcopy(buffer, bufferSize, test);
-		
+		char slotStr[MAXINTLENGTH];
+		IntToString(slot, slotStr, sizeof(slotStr));
+
+		equips.GetString(slotStr, buffer, bufferSize);
 	}
+
+	/**
+	 * Gets all the equip slots that are filled with models, placing them into slotsList (in filling order).
+	 * slotsList will not be overwritten; the slots will be pushed to the end.
+	 * 
+	 * @return An ArrayList of the filled slots.
+	 */
+	public ArrayList GetFilledSlots()
+	{
+		KeyValues equips = g_playersData[this.clientId].equippedItems;
+		ArrayList slotsList = new ArrayList();
+		
+		if (equips.GotoFirstSubKey(false))
+		{
+			char slotStr[MAXINTLENGTH];
+			do
+			{
+				equips.GetSectionName(slotStr, sizeof(slotStr));
+				slotsList.Push(StringToInt(slotStr));
+			} while(equips.GotoNextKey(false));
+
+		}
+
+		equips.Rewind();
+
+		return slotsList;
+	}
+}
+
+static void UserIdIsDifferent(int clientId)
+{
+	LogMessage("Warning: The FreakModel data for user %i was not correctly reset. (Error 60)", g_playersData[clientId].userId);
+
+	g_playersData[clientId].userId = 0;
+	PlayerData(clientId).ClearData();
 }
 
 //mainly used in/for cleanup module

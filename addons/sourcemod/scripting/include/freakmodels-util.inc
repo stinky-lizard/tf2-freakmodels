@@ -126,7 +126,7 @@ bool GetClientsFromUsername(int client, char[] user, int& targetsFound, int[] ta
 		if (!atLeastOneValid)
 		{
 			//shouldn't happen - processtargetstring should have checked they're all valid
-			ReplyToCommand(client, "Sorry, something went wrong. Try again? (Error code 10)");
+			ReplyToCommand(client, "Sorry, something went wrong. Try again? (Freakmodels error code: 10)");
 			return false;
 		}
 		return true;

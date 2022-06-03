@@ -68,7 +68,6 @@ int ItemUsedBy(const int itemReference)
 
 	bool done = false;
 
-	//i = 1 to skip server
 	for(int i = 1; i < PLAYERSDATASIZE; i++)
 	{
 		PlayerData pData = PlayerData(i);
@@ -77,16 +76,21 @@ int ItemUsedBy(const int itemReference)
 			usedBy = i;
 			break;
 		}
-		int max = pData.equippableSlotsLength;
-		for (int j = 1; j <= max; j++)
+		
+		ArrayList slots = pData.GetFilledSlots();
+		
+		for (int j = 0; j < slots.Length; j++)
 		{
-			if (itemReference == pData.GetEquippable(j))
+			if (itemReference == pData.GetEquippable(slots.Get(j)))
 			{
 				usedBy = i;
 				done = true;
 				break;
 			}
 		}
+
+		delete slots;
+
 		if (done) break;
 	}
 
