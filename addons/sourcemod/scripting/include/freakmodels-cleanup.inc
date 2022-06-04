@@ -58,7 +58,6 @@ void CleanupWearables(bool onlyLost = true)
 
 /**
  * Returns the player using an item, meaning if it's referenced in g_playersData
- * TODO: when addding cosmetics add checks for cosmetics
  * @param itemReference Reference ID of the item to check.
  * @return Client index of the client using the item, or -1 if it's not used.
  */

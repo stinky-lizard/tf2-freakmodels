@@ -42,7 +42,7 @@ static int MenuHandler_MainCommand(Menu menu, MenuAction action, int param1, int
 
             if (StrEqual(selectedItem, "#info"))
             {
-                //todo: make target diff from client for now
+                //todo: make target diff from client
                 PrintPlayerInfo(param1, param1);
             }
             else if (StrEqual(selectedItem, "#animation"))
@@ -71,8 +71,6 @@ static int MenuHandler_MainCommand(Menu menu, MenuAction action, int param1, int
 
 static void SetModeModelSelect(Menu menu, int client, int operation)
 {
-
-
     menu.RemoveAllItems();
 
     //get all models
