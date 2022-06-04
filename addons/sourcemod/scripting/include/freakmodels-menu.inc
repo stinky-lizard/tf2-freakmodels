@@ -149,21 +149,13 @@ static void PrintPlayerInfo(int client, int target)
     ArrayList slots = pData.GetFilledSlots();
 
     if (slots.Length > 0)
-        ReplyToCommand(client, "%s %i equipped %s: ", targetString, slots.Length, slots.Length > 1 ? "models" : "model");
-
-    char modelStr[PLATFORM_MAX_PATH];
-    for (int i = 0; i < slots.Length; i++)
     {
-        pData.GetEquippableName(slots.Get(i), modelStr, sizeof(modelStr));
+        int size = GetEquippablesInfoSize(client, target);
+        char[] playerInfo = new char[size];
 
-        if (modelStr[0])
-            //there is a name
-            ReplyToCommand(client, "- Slot %i: \"%s\"", slots.Get(i), modelStr);
-        else
-        {
-            GetEntPropString(pData.GetEquippable(slots.Get(i)), Prop_Data, "m_ModelName", modelStr, sizeof(modelStr));
-            ReplyToCommand(client, "- Slot %i: %s", slots.Get(i), modelStr);
-        }
+        GetEquippablesInfo(client, target, playerInfo, size);
+
+        ReplyToCommand(client, "%s", playerInfo);
     }
 
     delete slots;

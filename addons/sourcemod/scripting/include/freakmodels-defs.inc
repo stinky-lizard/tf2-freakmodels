@@ -225,6 +225,7 @@ methodmap PlayerData
 	/**
 	 * Gets all the equip slots that are filled with models, placing them into slotsList (in filling order).
 	 * slotsList will not be overwritten; the slots will be pushed to the end.
+	 * Remember to close the ArrayList handle after you're done.
 	 * 
 	 * @return An ArrayList of the filled slots.
 	 */

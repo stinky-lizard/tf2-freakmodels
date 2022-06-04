@@ -154,7 +154,7 @@ public void OnPluginEnd()
 			RemoveSkin(i);
 			RemoveAnim(i);
 
-			PrintToChat(i, "FreakModels is being unloaded or reloaded. Any customizations of yours have been removed (but feel free to re-apply them!");
+			PrintToChat(i, "FreakModels is being unloaded or reloaded. Any customizations of yours have been removed (but feel free to re-apply them!)");
 		}
 
 		PlayerData(i).ClearData();
@@ -570,85 +570,15 @@ public int ConfirmAllMenuHandler(Menu menu, MenuAction action, int param1, int p
 	}
 }
 
-public Action Timer_HelpPrint(Handle timer, Handle hndl)
-{
-	
-	//fuck this. replytocommand doesn't print in the right order :(
-	ArrayList list = view_as<ArrayList>(hndl);
-
-	int client;
-	if (list.Get(0) < 0)
-	{
-		client = 0;
-	}
-	else 
-	{
-		client = GetClientOfUserId(list.Get(0));	
-	}
-	
-	
-	switch(list.Get(1))
-	{
-		case 1:  { PrintToConsole(client, "Use freakmodel to change the model or animations of a player."); }
-		case 2:  { PrintToConsole(client, "Important options: "); }
-		case 3:  { PrintToConsole(client, "- Enter -skin <model> or -model <model> to set the appearance of a player to a model."); }
-		case 4:  { PrintToConsole(client, "- Enter -anim <model> to set the animations of a player to a model's."); }
-		// case 4: { PrintToConsole(client, "Enter -reset [anim|model] to reset the target's animation/model. If [anim|model] is omitted both will be reset."); }
-		case 5:  { PrintToConsole(client, "- Enter -reset to reset a player's animation & skin."); }
-		case 6:  { PrintToConsole(client, "--------------------------------"); }
-		case 7:  { PrintToConsole(client, "Less important options: "); }
-		case 8:  { PrintToConsole(client, "- Enter -fullpath to use the path to a model instead of a name. This requires knowledge of Source model paths & locations."); }
-		case 9:  { PrintToConsole(client, "- Enter -target <username> to target a specific player. The command will target yourself if this is omitted."); }
-		case 10: { PrintToConsole(client, "- Enter -help to print this dialogue in your console."); }
-		case 11: { PrintToConsole(client, "All options (-skin, -anim, etc.) can also be specified with only the first letter (-s, -a, etc.) if you like."); }
-		case 12: { PrintToConsole(client, "--------------------------------"); }
-		case 13: { PrintToConsole(client, "Model names & their associated models are defined by the server operator. By default, you can use the classes (scout, medic, etc.), but there may be more!"); }
-		case 14: { PrintToConsole(client, "--------------------------------"); }
-		case 15:
-		{
-			PrintToConsole(client, "For example: inputting 'freakmodel -s heavy -t bob' will set bob's model to heavy, without changing their animations; inputting 'freakmodel -r' will reset your own model and animations.");
-			delete list;
-			return Plugin_Handled;
-		}
-	}
-	list.Set(1, list.Get(1) + 1);
-	return Plugin_Handled;
-}
-
 void PrintHelp(int client)
 {
 	ReplyToCommand(client, "Printing help in your console.");
-	//this is horrible but ReplyToCommand doesn't want to print in the right order without it :(
-	//list is this: [userId, lineNum]
 
-	ArrayList list = new ArrayList();
-	if (client < 1)
-	{
-		list.Push(-1);
-	}
-	else
-	{
-		list.Push(GetClientUserId(client));
-	}
-	
-	list.Push(1);
-	CreateTimer(0.1, Timer_HelpPrint, list);
-	CreateTimer(0.2, Timer_HelpPrint, list);
-	CreateTimer(0.3, Timer_HelpPrint, list);
-	CreateTimer(0.4, Timer_HelpPrint, list);
-	CreateTimer(0.5, Timer_HelpPrint, list);
-	CreateTimer(0.6, Timer_HelpPrint, list);
-	CreateTimer(0.7, Timer_HelpPrint, list);
-	CreateTimer(0.8, Timer_HelpPrint, list);
-	CreateTimer(0.9, Timer_HelpPrint, list);
-	CreateTimer(1.0, Timer_HelpPrint, list);
-	CreateTimer(1.1, Timer_HelpPrint, list);
-	CreateTimer(1.2, Timer_HelpPrint, list);
-	CreateTimer(1.3, Timer_HelpPrint, list);
-	CreateTimer(1.4, Timer_HelpPrint, list);
-	CreateTimer(1.5, Timer_HelpPrint, list);
-	
-	
+	PrintToConsole
+	(
+		client,
+		"\nUse freakmodel to change the model or animations of a player.\nImportant options: \n- Enter -skin <model> or -model <model> to set the appearance of a player to a model.\n- Enter -anim <model> to set the animations of a player to a model's.\n- Enter -reset to reset a player's animation & skin.\n\nLess important options: \n- Enter -fullpath to use the path to a model instead of a name. This requires knowledge of Source model paths & locations.\n- Enter -target <username> to target a specific player. The command will target yourself if this is omitted.\n- Enter -help to print this dialogue in your console.\nAll options (-skin, -anim, etc.) can also be specified with only the first letter (-s, -a, etc.) if you like.\n\n\nModel names & their associated models are defined by the server operator. By default, you can use the classes (scout, medic, etc.), but there may be more!\n\n"
+	);
 }
 
 void ResetClientCommandData(int client)

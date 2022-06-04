@@ -36,28 +36,14 @@ Action EquipCommand(int client, int args)
 			if (!foundOne) return Plugin_Handled; //client was already alerted their input was invalid by GetClientsFromUsername
 		}
 
-		char playerName[MAX_NAME_LENGTH];
-		char modelPath[PLATFORM_MAX_PATH];
-
 		for (int p = 0; p < targetsFound; p++)
 		{
-			GetClientName(targetList[p], playerName, sizeof(playerName));
+			int size = GetEquippablesInfoSize(client, targetList[p]);
+			char[] playerInfo = new char[size];
 
-			PlayerData pData = PlayerData(targetList[p]);
+			GetEquippablesInfo(client, targetList[p], playerInfo, size);
 
-			ArrayList slots = pData.GetFilledSlots();
-
-			if (slots.Length < 1) ReplyToCommand(client, "%s has no equipped models.", playerName);
-
-			for (int i = 0; i < slots.Length; i++)
-			{
-				if (IsValidEntity(pData.GetEquippable(slots.Get(i))))
-				{
-					GetEntPropString(pData.GetEquippable(slots.Get(i)), Prop_Data, "m_ModelName", modelPath, sizeof(modelPath));
-					ReplyToCommand(client, "%s: Slot %i: %s", playerName, slots.Get(i), modelPath);
-				}
-			}
-			delete slots;
+			ReplyToCommand(client, "%s", playerInfo);
 		}
 	}
 	else if (operation[0] == 'r')
@@ -253,6 +239,11 @@ Action EquipCommand(int client, int args)
 				return Plugin_Handled;
 			}	
 		}
+		else
+		{
+			//they didn't enter a name
+			modelName = "";
+		}
 
 		//replace \s with /s
 		ReplaceString(modelPath, sizeof(modelPath), "\\", "/");
@@ -279,16 +270,19 @@ Action EquipCommand(int client, int args)
 
 		for (int i = 0; i < targetsFound; i++)
 		{
-			FuncOutput out = AddEquippable(targetList[i], modelPath, slot);
+			FuncOutput out = AddEquippable(targetList[i], modelPath, slot, modelName);
+
 			GetClientName(targetList[i], playerName, sizeof(playerName));
 			if (targetList[i] == client)
 			{
-				ReplyToCommand(client, "You are now wearing \"%s\" in slot %i.", modelName, slot);
+				if (modelName[0]) ReplyToCommand(client, "You are now wearing \"%s\" in slot %i.", modelName, slot);
+				else ReplyToCommand(client, "You are now wearing %s in slot %i.", modelPath, slot);
 				if (out == REMOVEDEQUIP) ReplyToCommand(client, "Let it be known: you already had something equipped in slot %i - this has been overwritten.", slot);
 			}
 			else
 			{
-				ReplyToCommand(client, "%s is now wearing \"%s\" in slot %i.", playerName, modelName, slot);
+				if (modelName[0]) ReplyToCommand(client, "%s is now wearing \"%s\" in slot %i.", playerName, modelName, slot);
+				else ReplyToCommand(client, "%s is now wearing %s in slot %i.", playerName, modelPath, slot);
 				if (out == REMOVEDEQUIP) ReplyToCommand(client, "Let it be known: %s already had something equipped in slot %i - this has been overwritten.", playerName, slot);
 			}
 		}
@@ -300,113 +294,35 @@ Action EquipCommand(int client, int args)
 void Equip_PrintHelp(int client)
 {
 	ReplyToCommand(client, "Printing fm_equip help in your console.");
-	//this is horrible but ReplyToCommand doesn't want to print in the right order without it :(
-	//list is this: [userId, lineNum]
-	ArrayList list = new ArrayList();
-	if (client < 1)
-	{
-		list.Push(-1);
-	}
-	else
-	{
-		list.Push(GetClientUserId(client));
-	}
-	
-	list.Push(1);
-	CreateTimer(0.1, Equip_Timer_HelpPrint, list);
-	CreateTimer(0.2, Equip_Timer_HelpPrint, list);
-	CreateTimer(0.3, Equip_Timer_HelpPrint, list);
-	CreateTimer(0.4, Equip_Timer_HelpPrint, list);
-	CreateTimer(0.5, Equip_Timer_HelpPrint, list);
-	CreateTimer(0.6, Equip_Timer_HelpPrint, list);
-	CreateTimer(0.7, Equip_Timer_HelpPrint, list);
-	CreateTimer(0.8, Equip_Timer_HelpPrint, list);
-	CreateTimer(0.9, Equip_Timer_HelpPrint, list);
-	CreateTimer(1.0, Equip_Timer_HelpPrint, list);
-	CreateTimer(1.1, Equip_Timer_HelpPrint, list);
-	CreateTimer(1.2, Equip_Timer_HelpPrint, list);
-	CreateTimer(1.3, Equip_Timer_HelpPrint, list);
-	CreateTimer(1.4, Equip_Timer_HelpPrint, list);
-	CreateTimer(1.5, Equip_Timer_HelpPrint, list);
-	CreateTimer(1.6, Equip_Timer_HelpPrint, list);
-	CreateTimer(1.7, Equip_Timer_HelpPrint, list);
-	CreateTimer(1.8, Equip_Timer_HelpPrint, list);
-	CreateTimer(1.9, Equip_Timer_HelpPrint, list);
-	CreateTimer(2.0, Equip_Timer_HelpPrint, list);
-	
+
+	PrintToConsole
+	(
+		client,
+		"\nUse fm_equip to add a model to a player as a wearable.\nThe player will not actually receive the item in their inventory, nor will it change their stats in any way.\nOptions:\n- Enter `fm_equip add` to add a model to a player.\n- Enter `fm_equip remove` to remove a model from a player.\n- Enter `fm_equip info` to view a player's current models.\n\n\nAdd mode usage: `fm_equip add <model> <slot> [target] [-fullpath]\n- In place of <model>, add the name of the model as defined by the server operator.\n- In place of <slot>, add the slot (between 1 and 99) to add the wearable to on the player.\n- Optional: In place of [target], enter a player username (or a multi-target, e.g. @all) to target another player.\n- Optional: Add -fullpath or -f at the end to use the path to a model instead of a model's name. This can use any loaded model.\n\n\nRemove mode usage: `fm_equip remove <slot> [target]\n- In place of <slot>, add the slot containing the wearable you want to remove.\n- Optional: In place of [target], enter a player username (or a multi-target, e.g. @all) to target another player.\n\n\nInfo mode usage: `fm_equip info <target>\n- In place of <target>, enter a player username (or a multi-target, e.g. @all) to view that player's info."
+	)
 
 }
 
-
-public Action Equip_Timer_HelpPrint(Handle timer, Handle hndl)
+FuncOutput AddEquippable(int target, char[] modelPath, int slot, char[] modelName = "")
 {
-	
-	//fuck this. replytocommand doesn't print in the right order :(
-	ArrayList list = view_as<ArrayList>(hndl);
+	bool removedOne = false;
 
-	int client;
-	if (list.Get(0) < 0)
+	PlayerData pData = PlayerData(target);
+
+	//if there's an existing item, remove it
+	if (pData.GetEquippable(slot))
 	{
-		client = 0;
+		RemoveEquippable(target, slot);
+		removedOne = true;
 	}
-	else 
-	{
-		client = GetClientOfUserId(list.Get(0));	
-	}
+
+	int rItem = 0;
 	
+	CreateWearable(target, modelPath, rItem);
 	
-	switch(list.Get(1))
-	{
-		case 1:  { PrintToConsole(client, "Use fm_equip to add a model to a player as a wearable."); }
-		case 2:  { PrintToConsole(client, "The player will not actually receive the item in their inventory, nor will it change their stats in any way."); }
-		case 3:  { PrintToConsole(client, "Options:"); }
-		case 4:  { PrintToConsole(client, "- Enter `fm_equip add` to add a model to a player."); }
-		case 5:  { PrintToConsole(client, "- Enter `fm_equip remove` to remove a model from a player."); }
-		case 6:  { PrintToConsole(client, "- Enter `fm_equip info` to view a player's current models."); }
-		case 7:  { PrintToConsole(client, "--------------------------------"); }
-		case 8:  { PrintToConsole(client, "Add mode usage: `fm_equip add <model> <slot> [target] [-fullpath]"); }
-		case 9:  { PrintToConsole(client, "- In place of <model>, add the name of the model as defined by the server operator."); }
-		case 10: { PrintToConsole(client, "- In place of <slot>, add the slot (between 1 and 99) to add the wearable to on the player."); }
-		case 11: { PrintToConsole(client, "- Optional: In place of [target], enter a player username (or a multi-target, e.g. @all) to target another player."); }
-		case 12: { PrintToConsole(client, "- Optional: Add -fullpath or -f at the end to use the path to a model instead of a model's name. This can use any loaded model."); }
-		case 13: { PrintToConsole(client, "--------------------------------"); }
-		case 14: { PrintToConsole(client, "Remove mode usage: `fm_equip remove <slot> [target]"); }
-		case 15: { PrintToConsole(client, "- In place of <slot>, add the slot containing the wearable you want to remove."); }
-		case 16: { PrintToConsole(client, "- Optional: In place of [target], enter a player username (or a multi-target, e.g. @all) to target another player."); }
-		case 17: { PrintToConsole(client, "--------------------------------"); }
-		case 18: { PrintToConsole(client, "Info mode usage: `fm_equip info <target>"); }
-		case 19: { PrintToConsole(client, "- In place of <target>, enter a player username (or a multi-target, e.g. @all) to view that player's info."); }
-		case 20:
-		{
-			delete list;
-			return Plugin_Handled;
-		}
-	}
-	list.Set(1, list.Get(1) + 1);
-	return Plugin_Handled;
-}
+	pData.SetEquippable(rItem, slot, modelName);
 
-FuncOutput AddEquippable(int target, char[] modelPath, int slot)
-{
-    bool removedOne = false;
-
-    PlayerData pData = PlayerData(target);
-
-    //if there's an existing item, remove it
-    if (pData.GetEquippable(slot))
-    {
-        RemoveEquippable(target, slot);
-        removedOne = true;
-    }
-
-    int rItem = 0;
-
-    CreateWearable(target, modelPath, rItem);
-
-    pData.SetEquippable(rItem, slot);
-
-
-    return removedOne ? REMOVEDEQUIP : GOOD;
+	return removedOne ? REMOVEDEQUIP : GOOD;
 }
 
 void RemoveEquippable(int target, int slot)
@@ -433,8 +349,14 @@ int GetEquippablesInfoSize(int client, int target)
 	int size = 2; //terminator + safety
 
 	char targetName[MAX_NAME_LENGTH];
+	GetClientName(target, targetName, sizeof(targetName));
 
-	ArrayList slots = PlayerData(target).GetFilledSlots();
+	char modelName[PLATFORM_MAX_PATH];
+	char modelPath[PLATFORM_MAX_PATH];
+
+	PlayerData pData = PlayerData(target);
+
+	ArrayList slots = pData.GetFilledSlots();
 
 	//first check if they even have anything
 	if (slots.Length < 1)
@@ -444,20 +366,131 @@ int GetEquippablesInfoSize(int client, int target)
 		else
 		{
 			size += strlen(" has no equipped models.");
-			GetClientName(target, targetName, sizeof(targetName));
 			size += strlen(targetName);
 		}
 	}
 	else
 	{
-		size += strlen(" has:");
-		size += 2; //+ \n
-		//todo
+		if (client == target)
+		{
+			size += strlen("You have these models equipped:");	//"You have:"
+		}
+		else
+		{
+			size += strlen(targetName);
+			size += strlen(" has these models equipped:");	//" has:"
+		}
+		
+		size += 2;	//\n
+		
+		int s;
+
+		for (int i = 0; i < slots.Length; i++)
+		{
+			s = slots.Get(i);
+			//- Slot n: <modelName>|<modelPath>\n
+			size += 7;	//"- Slot "
+			size += RoundToFloor(Logarithm(float(s))) + 1; //length of slot num - doesn't work for numbers below 1 but slots start at 1 so is ok
+			size += 2;	//": "
+			
+			pData.GetEquippableName(s, modelName, sizeof(modelName));
+
+			if (modelName[0])
+			{
+				//the model has a name
+				size += 4; //\"\"
+				size += strlen(modelName);
+			}
+			else
+			{
+				GetEntPropString(pData.GetEquippable(s), Prop_Data, "m_ModelName", modelPath, sizeof(modelPath));
+				size += strlen(modelPath);
+			}
+
+			size += 2; //\n
+		}
 	}
 
 	delete slots;
 	return size;
 }
 
-//todo: void GetEquippablesInfo(int client, int buffer, int bufferSize)
-//todo: int GetEquipppablesInfoSize(int client)
+/**
+ * Gives a string of information about a client's equippables, spanning multiple lines.
+ * 
+ * @param client         Client ID of caller.
+ * @param target         Client ID of target.
+ * @param buffer         Buffer to store the string in.
+ * @param bufferSize     Size of buffer. See GetEquippablesInfoSize.
+ */
+void GetEquippablesInfo(int client, int target, char[] buffer, int bufferSize)
+{
+	PlayerData pData = PlayerData(target);
+	ArrayList slots = pData.GetFilledSlots();
+
+	char modelName[PLATFORM_MAX_PATH];
+	char modelPath[PLATFORM_MAX_PATH];
+
+	char targetName[MAX_NAME_LENGTH];
+	GetClientName(target, targetName, sizeof(targetName));
+
+	strcopy(buffer, bufferSize, "");
+
+	if (slots.Length < 1)
+	{
+		if (client == target)
+			StrCat(buffer, bufferSize, "You have no equipped models.");
+		else
+		{
+			StrCat(buffer, bufferSize, targetName);
+			StrCat(buffer, bufferSize, " has no equipped models.");
+		}
+	}
+	else
+	{
+		if (client == target)
+			StrCat(buffer, bufferSize, "You have these models equipped:");
+		else
+		{
+			StrCat(buffer, bufferSize, targetName);
+			StrCat(buffer, bufferSize, " has these models equipped:");
+		}
+
+		StrCat(buffer, bufferSize, "\n");
+
+		int s;
+		char sStr[MAXINTLENGTH];
+
+		for (int i = 0; i < slots.Length; i++)
+		{
+			s = slots.Get(i);
+			//- Slot n: <modelName>|<modelPath>\n
+			StrCat(buffer, bufferSize, "- Slot ");
+
+			IntToString(s, sStr, sizeof(sStr));
+			StrCat(buffer, bufferSize, sStr);
+
+			StrCat(buffer, bufferSize, ": ");
+			
+			pData.GetEquippableName(s, modelName, sizeof(modelName));
+
+			if (modelName[0])
+			{
+				//the model has a name
+				StrCat(buffer, bufferSize, "\"");
+				StrCat(buffer, bufferSize, modelName);
+				StrCat(buffer, bufferSize, "\"");
+			}
+			else
+			{
+				GetEntPropString(pData.GetEquippable(s), Prop_Data, "m_ModelName", modelPath, sizeof(modelPath));
+				StrCat(buffer, bufferSize, modelPath);
+			}
+
+			StrCat(buffer, bufferSize, "\n");
+		}
+	}
+
+	delete slots;
+
+}
