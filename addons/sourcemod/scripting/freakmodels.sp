@@ -10,7 +10,7 @@
 #include <freakmodels-cleanup>
 #include <freakmodels-manage>
 #include <freakmodels-menu>
-#include <freakmodels-fixes>
+#include <freakmodels-misc>
 
 #pragma semicolon 1
 #pragma newdecls required
@@ -95,6 +95,9 @@ public void OnPluginStart()
 
 	//fix anim resetting after inventory applied
 	HookEvent("post_inventory_application", OnInventoryApplied);
+
+	//change wearable teams on player team change
+	HookEvent("player_team", OnTeamChanged);
 
 	//get req admin flags
 	config.Rewind();

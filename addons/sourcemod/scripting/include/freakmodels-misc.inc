@@ -46,3 +46,46 @@ public Action Timer_CheckAnimAfterInventoryApplied(Handle timer, int userId)
 
 	return Plugin_Handled;
 }
+
+public void OnTeamChanged(Event event, const char[] name, bool dontBroadcast)
+{
+	int userId = event.GetInt("userid", -1);
+	if (userId == -1) return;
+
+	int clientId = GetClientOfUserId(userId);
+	if (!IsValidClient(clientId)) return;
+
+	TFTeam team = view_as<TFTeam>(event.GetInt("team", -1));
+
+	PlayerData pData = PlayerData(clientId);
+	ArrayList slots = pData.GetFilledSlots();
+
+	if (!(team == TFTeam_Blue || team == TFTeam_Red))
+	{
+		//they switched to observer or smth
+		RemoveAnim(clientId);
+		RemoveSkin(clientId);
+
+		int s;
+		for (int i = 0; i < slots.Length; i++)
+		{
+			s = slots.Get(i);
+
+			RemoveEquippable(clientId, s);
+		}
+
+	}
+	else
+	{
+		SetEntProp(pData.rSkinItem, Prop_Send, "m_iTeamNum", team);
+
+		int s;
+		for (int i = 0; i < slots.Length; i++)
+		{
+			s = slots.Get(i);
+			SetEntProp(pData.GetEquippable(s), Prop_Send, "m_iTeamNum", team);
+		}
+	}
+	
+	delete slots;
+}

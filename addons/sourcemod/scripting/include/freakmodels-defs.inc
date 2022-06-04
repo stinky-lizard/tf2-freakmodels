@@ -189,15 +189,27 @@ methodmap PlayerData
 
 		if (itemReference == 0)
 		{
-			equips.JumpToKey(slotStr);
-			equips.DeleteThis()
-			equips.GoBack();
+			if (equips.JumpToKey(slotStr))
+			{
+				equips.DeleteThis();
+				equips.GoBack();
+			}
 		}
 		else
 			equips.SetNum(slotStr, itemReference);
 
 		if (name[0])
 			g_playersData[this.clientId].equippedItemNames.SetString(slotStr, name);
+		else
+		{
+			//we're overwriting whatever's here, so we want to delete the name
+			KeyValues names = g_playersData[this.clientId].equippedItemNames;
+			if (names.JumpToKey(slotStr))
+			{
+				names.DeleteThis();
+				names.GoBack();
+			}
+		}
 	}
 
 	public int GetEquippable(int slot)
