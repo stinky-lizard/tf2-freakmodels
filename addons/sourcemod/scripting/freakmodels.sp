@@ -9,8 +9,9 @@
 #include <freakmodels-equip>
 #include <freakmodels-cleanup>
 #include <freakmodels-manage>
-#include <freakmodels-menu>
+// #include <freakmodels-menu>
 #include <freakmodels-misc>
+#include <freakmodels-ragdoll>
 
 #pragma semicolon 1
 #pragma newdecls required
@@ -304,13 +305,19 @@ Action MainCommand(int client, int args)
 		if (args > 0)
 		{
 			ReplyToCommand(client, "Sorry, couldn't understand your arguments.");
-			// ReplyToCommand(client, "Enter `freakmodel -help` to print help in the console.");
-			ReplyToCommand(client, "Enter `freakmodel -help` to print help in the console, or simply `freakmodel` to use a menu.");
+			#if defined freakmodels_menu_included
+				ReplyToCommand(client, "Enter `freakmodel -help` to print help in the console, or simply `freakmodel` to use a menu.");
+			#else
+				ReplyToCommand(client, "Enter `freakmodel -help` to print help in the console.");
+			#endif
 		}
 		else 
 		{
-			MainCommandMenu(client);
-			// ReplyToCommand(client, "Enter `freakmodel -help` to print help in the console.");
+			#if defined freakmodels_menu_included
+				MainCommandMenu(client);
+			#else
+				ReplyToCommand(client, "Enter `freakmodel -help` to print help in the console.");
+			#endif
 		}
 		return Plugin_Handled;
 	}

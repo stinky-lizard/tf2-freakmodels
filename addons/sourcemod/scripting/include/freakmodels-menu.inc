@@ -1,4 +1,6 @@
 
+#define freakmodels_menu_included
+
 void MainCommandMenu(int client)
 {
     //first check if the client is the server. can't show a menu to the server

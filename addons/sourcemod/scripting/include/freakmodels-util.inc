@@ -95,13 +95,24 @@ bool GetClientsFromUsername(int client, char[] user, int& targetsFound, int[] ta
 
 	if (deadTargetsFound > 0)
 	{
-		//add all dead targets to alive targets
-		for (int i = 0; i < deadTargetsFound; i++)
+		if (targetsFound < 1)
 		{
-			targetList[targetsFound + i] = deadTargetList[i];
+			for (int i = 0; i < deadTargetsFound; i++)
+			{
+				targetList[i] = deadTargetList[i];
+			}
+			targetsFound = deadTargetsFound;
+		} 
+		else
+		{
+			//add all dead targets to alive targets
+			for (int i = 0; i < deadTargetsFound; i++)
+			{
+				targetList[targetsFound + i] = deadTargetList[i];
+			}
+			targetsFound += deadTargetsFound;
+			
 		}
-		if (targetsFound < 1) targetsFound = deadTargetsFound;
-		else targetsFound += deadTargetsFound;
 	}
 
 	if (targetsFound < 1)

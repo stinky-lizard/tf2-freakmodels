@@ -93,10 +93,9 @@ public void OnTeamChanged(Event event, const char[] name, bool dontBroadcast)
 //switch wearable team when disguising & disguise removed
 // public void TF2_OnConditionAdded(int client, TFCond condition)
 // {
-// 	if (!IsValidClient(client)) return;
-
 // 	if (condition == TFCond_Disguised)
 // 	{
+// 	 	if (!IsValidClient(client)) return;
 // 		TFTeam newTeam = view_as<TFTeam>(GetEntProp(client, Prop_Send, "m_nDisguiseTeam"));
 
 // 		PlayerData pData = PlayerData(client);
@@ -104,7 +103,7 @@ public void OnTeamChanged(Event event, const char[] name, bool dontBroadcast)
 // 		if (pData.rSkinItem)
 // 		{
 // 			//set the team for the wearable??? what do we do?
-//			//todo: figure this shit out
+// 			//todo: figure this shit out
 // 		}
 // 	}
 // }

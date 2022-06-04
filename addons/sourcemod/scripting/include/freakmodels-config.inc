@@ -25,6 +25,7 @@ void RefreshConfigFromFile()
 	config.Rewind();
 
 	//TEMPORARY
+	//todo: do correctly
 	config.JumpToKey("comments", true);
 	if (!config.GetNum("RequiredAdmin"))
 	{
@@ -32,9 +33,9 @@ void RefreshConfigFromFile()
 		config.SetNum("RequiredAdmin", ADMFLAG_GENERIC);
 	}
 
-	//todo: lowercase all names & save case in separate sub-key
-
 	config.Rewind();
+
+	//todo: lowercase all names & save case in separate sub-key	
 }
 
 /**

@@ -22,7 +22,7 @@ enum struct ModelChangeData
 	bool isReset;
 	bool useFullpaths;
 
-	int targets[MAXPLAYERS];
+	int targets[MAXPLAYERS + 1]; //+1 for safety
 	int numTargets;
 
 	char animPath[PLATFORM_MAX_PATH];
@@ -55,8 +55,6 @@ enum struct PlayerDataStruct
 //used globally - in many modules
 
 ModelChangeData g_clientsCommandData[MAXPLAYERS + 1];
-
-// Handle regularCleanupTimer = null;
 
 #define PLAYERSDATASIZE (MAXPLAYERS + 1)
 #define MAXINTLENGTH 22 //64 bit ints are up to 19 characters long, + 1 for sign, + 1 for terminator, + 1 for safety
@@ -188,28 +186,12 @@ methodmap PlayerData
 		IntToString(slot, slotStr, sizeof(slotStr));
 
 		if (itemReference == 0)
-		{
-			if (equips.JumpToKey(slotStr))
-			{
-				equips.DeleteThis();
-				equips.GoBack();
-			}
-		}
+			equips.SetString(slotStr, "");
 		else
 			equips.SetNum(slotStr, itemReference);
-
-		if (name[0])
-			g_playersData[this.clientId].equippedItemNames.SetString(slotStr, name);
-		else
-		{
-			//we're overwriting whatever's here, so we want to delete the name
-			KeyValues names = g_playersData[this.clientId].equippedItemNames;
-			if (names.JumpToKey(slotStr))
-			{
-				names.DeleteThis();
-				names.GoBack();
-			}
-		}
+		
+		//we're overwriting whatever's here - if name is "" it'll delete the key
+		g_playersData[this.clientId].equippedItemNames.SetString(slotStr, name);
 	}
 
 	public int GetEquippable(int slot)
