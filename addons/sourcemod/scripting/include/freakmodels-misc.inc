@@ -96,8 +96,12 @@ public void OnTeamChanged(Event event, const char[] name, bool dontBroadcast)
 // 	if (condition == TFCond_Disguised)
 // 	{
 // 	 	if (!IsValidClient(client)) return;
-// 		TFTeam newTeam = view_as<TFTeam>(GetEntProp(client, Prop_Send, "m_nDisguiseTeam"));
+// 		// TFTeam newTeam = view_as<TFTeam>(GetEntProp(client, Prop_Send, "m_nDisguiseTeam"));
 
+// 		char disguiseTargetName[MAX_NAME_LENGTH];
+// 		int disguiseTarget = GetEntProp(client, Prop_Send, "m_iDisguiseTargetIndex");
+// 		GetClientName(disguiseTarget, disguiseTargetName, sizeof(disguiseTargetName));
+// 		PrintToChatAll("Disguised into %i, which is %s!", disguiseTarget, disguiseTargetName);
 // 		PlayerData pData = PlayerData(client);
 
 // 		if (pData.rSkinItem)

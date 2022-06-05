@@ -166,6 +166,14 @@ public void OnPluginEnd()
 
 	while(allWearables.Length > 0)
 		CleanupWearables(false);
+
+	#if defined freakmodels_ragdoll_included
+		if (g_allRagdollWearables)
+		{
+			for (int i = 0; i < g_allRagdollWearables.Length; i++)
+				if (IsValidEntity(g_allRagdollWearables.Get(i))) RemoveEntity(g_allRagdollWearables.Get(i));
+		}
+	#endif
 }
 
 //Remove any skins from players that disconnect
@@ -180,18 +188,60 @@ public void OnEntityDestroyed(int entity)
 {
 	char classname[MAX_NAME_LENGTH];
 	GetEntityClassname(entity, classname, sizeof(classname));
-	if (!(StrEqual(classname, "tf_wearable", false) || StrEqual(classname, "freakmodel_wearable", false)))
-		//it ain't a wearable, def isn't ours
-		return;
-	
-	int usedBy = ItemUsedBy(EntIndexToEntRef(entity));
 
-	if (usedBy != -1 && EntRefToEntIndex(PlayerData(usedBy).rSkinItem) == entity)
+	if (StrEqual(classname, "freakmodel_wearable", false))
 	{
-		//it was a skin that was destroyed
-		if (IsValidClient(usedBy)) MakePlayerVisible(usedBy);
-		PlayerData(usedBy).rSkinItem = 0;
+		//its ours	
+		int usedBy = ItemUsedBy(EntIndexToEntRef(entity));
+
+		if (usedBy != -1 && EntRefToEntIndex(PlayerData(usedBy).rSkinItem) == entity)
+		{
+			//it was a skin that was destroyed
+			if (IsValidClient(usedBy)) MakePlayerVisible(usedBy);
+			PlayerData(usedBy).rSkinItem = 0;
+		}
 	}
+
+	#if defined freakmodels_ragdoll_included
+		if (StrEqual(classname, "tf_ragdoll") && g_trackedRagdolls)
+		{
+			//a ragdoll was deleted
+
+			char entStr[MAXINTLENGTH];
+			IntToString(EntIndexToEntRef(entity), entStr, sizeof(entStr));
+			if (g_trackedRagdolls.JumpToKey("wearables"))
+			{
+				//it was a ragdoll we're tracking
+				ArrayList ragdollWearables = view_as<ArrayList>(g_trackedRagdolls.GetNum(entStr));
+				if (ragdollWearables)
+				{
+					//delete all the wearables and clear the arraylist
+					for (int i = 0; i < ragdollWearables.Length; i++)
+					{
+						int wearableItem = ragdollWearables.Get(i);
+						if (IsValidEntity(wearableItem))
+							RemoveEntity(wearableItem);
+					}
+
+					delete ragdollWearables;
+					g_trackedRagdolls.SetString(entStr, "");
+				}
+				else
+					// this shouldn't happen. just get rid of this key
+					g_trackedRagdolls.SetString(entStr, "");
+				g_trackedRagdolls.Rewind();
+			}
+			
+			if (g_trackedRagdolls.JumpToKey("timers"))
+			{
+				Handle fadeTimer = view_as<Handle>(g_trackedRagdolls.GetNum(entStr));
+				if (fadeTimer) KillTimer(fadeTimer);
+				g_trackedRagdolls.SetString(entStr, "");
+
+				g_trackedRagdolls.Rewind();
+			}
+		}
+	#endif
 }
 
 /*
