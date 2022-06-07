@@ -143,3 +143,30 @@ bool GetClientsFromUsername(int client, char[] user, int& targetsFound, int[] ta
 		return true;
 	}
 }
+
+// #define SVKVPOSRW(%0) int _kvBufferSize = %0.NodesInStack();int[] _kvBuffer = new int[_kvBufferSize];bool _gotoBuffer;if (_kvBufferSize != 0){_gotoBuffer = true;SaveKVPosAndRewind(%0, _kvBuffer, _kvBufferSize);}
+// #define GOTOKVPOS(%0) if (_gotoBuffer) GotoKVPos(%0, _kvBuffer, _kvBufferSize);
+
+// void SaveKVPosAndRewind(KeyValues kv, int[] buffer, int bufferSize)
+// {
+// 	if (bufferSize != kv.NodesInStack())
+// 		ThrowError("SaveKVPosAndRewind buffer size must equal the nodes in stack!");
+
+// 	for (int i = bufferSize - 1; i >= 0; i--)
+// 	{
+// 		if (!kv.GetSectionSymbol(buffer[i]))
+// 			ThrowError("GetSectionSymbol failed!");
+// 		if (!kv.GoBack() && i > 0)
+// 			ThrowError("Array sizes don't match up!");
+// 	}
+// 	//buffer now has the symbols of the sections we were at, and we're rewound to the beginning
+// }
+
+// void GotoKVPos(KeyValues kv, int[] buffer, int bufferSize)
+// {
+// 	for (int i = 0; i < bufferSize; i++)
+// 	{
+// 		if (!kv.JumpToKeySymbol(buffer[i]))
+// 			ThrowError("Key %i does not exist!", buffer[i]);
+// 	}
+// }

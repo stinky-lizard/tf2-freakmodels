@@ -11,14 +11,15 @@ public void OnEntityCreated(int entity, const char[] classname)
 {
 	if (StrEqual(classname, "tf_ragdoll"))
 	{
-		RequestFrame(RagdollMade, entity);
+		// RequestFrame(RagdollMade, entity);
 	}
 }
 
+/*
 void RagdollMade(int ragdollEnt)
 {
 	// SetEntPropFloat(ragdollEnt, Prop_Send, "m_flHeadScale", 20.0);
-}/*	
+}
 	ragdollEnt = EntIndexToEntRef(ragdollEnt);
 
 	if (!g_trackedRagdolls)

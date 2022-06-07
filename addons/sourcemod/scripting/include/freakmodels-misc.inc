@@ -90,24 +90,168 @@ public void OnTeamChanged(Event event, const char[] name, bool dontBroadcast)
 	delete slots;
 }
 
+int g_disguiseTargets[PLAYERSDATASIZE];
+
 //switch wearable team when disguising & disguise removed
-// public void TF2_OnConditionAdded(int client, TFCond condition)
-// {
-// 	if (condition == TFCond_Disguised)
-// 	{
-// 	 	if (!IsValidClient(client)) return;
-// 		// TFTeam newTeam = view_as<TFTeam>(GetEntProp(client, Prop_Send, "m_nDisguiseTeam"));
+public void TF2_OnConditionAdded(int client, TFCond condition)
+{
+	if (condition == TFCond_Disguised)
+	{
+	 	if (!IsValidClient(client)) return;
 
-// 		char disguiseTargetName[MAX_NAME_LENGTH];
-// 		int disguiseTarget = GetEntProp(client, Prop_Send, "m_iDisguiseTargetIndex");
-// 		GetClientName(disguiseTarget, disguiseTargetName, sizeof(disguiseTargetName));
-// 		PrintToChatAll("Disguised into %i, which is %s!", disguiseTarget, disguiseTargetName);
-// 		PlayerData pData = PlayerData(client);
+		// TFTeam newTeam = view_as<TFTeam>(GetEntProp(client, Prop_Send, "m_nDisguiseTeam"));
+		int disguiseTarget = GetEntProp(client, Prop_Send, "m_iDisguiseTargetIndex");
 
-// 		if (pData.rSkinItem)
-// 		{
-// 			//set the team for the wearable??? what do we do?
-// 			//todo: figure this shit out
-// 		}
-// 	}
-// }
+		//check every 100ms if the player has disguised as someone else
+		g_disguiseTargets[client] = disguiseTarget;
+		SDKHook(client, SDKHook_PostThinkPost, CheckDisguiseChanged);
+
+		DisguiseEquips(client, disguiseTarget);
+	}
+}
+
+public void TF2_OnConditionRemoved(int client, TFCond condition)
+{
+	if (condition == TFCond_Disguised)
+	{
+		SDKUnhook(client, SDKHook_PostThinkPost, CheckDisguiseChanged);
+		g_disguiseTargets[client] = 0;
+		UndisguiseEquips(client);
+	}
+}
+
+void CheckDisguiseChanged(int client)
+{
+	if (GetEntProp(client, Prop_Send, "m_iDisguiseTargetIndex") != g_disguiseTargets[client])
+	{
+		//theyve changed who they're disguised as
+		int dt = GetEntProp(client, Prop_Send, "m_iDisguiseTargetIndex");
+		g_disguiseTargets[client] = dt;
+		DisguiseEquips(client, dt);
+	}
+}
+
+void DisguiseEquips(int disguiser, int disguiseTarget)
+{
+	if (!g_disguiseWearables)
+		g_disguiseWearables = new KeyValues("DisguiseEquips");
+
+	PlayerData dtData = PlayerData(disguiseTarget);
+
+	char idStr[MAXINTLENGTH];
+	IntToString(GetClientUserId(disguiser), idStr, sizeof(idStr));
+	char curSection[MAXINTLENGTH];
+	g_disguiseWearables.GetSectionName(curSection, sizeof(curSection));
+	if (!StrEqual(curSection, idStr))
+	{
+		g_disguiseWearables.Rewind();
+		g_disguiseWearables.JumpToKey(idStr, true);
+	}
+
+	//we're in the right place
+	if (g_disguiseWearables.GotoFirstSubKey(false))
+	{
+		//we already have a disguise on
+		UndisguiseEquips(disguiser);
+		//undisguiseequips rewound us & deleted the key
+		g_disguiseWearables.JumpToKey(idStr, true);
+	}
+
+	SetEquipsHidden(disguiser, true);
+
+	//now actually add equips to the player
+	char tmppath[PLATFORM_MAX_PATH];
+	
+	//set anim
+	dtData.GetStr("animpath", tmppath, sizeof(tmppath));
+	g_disguiseWearables.SetString("anim", tmppath);
+	SetVariantString(tmppath);
+	AcceptEntityInput(disguiser, "SetCustomModel");
+	SetEntProp(disguiser, Prop_Send, "m_bUseClassAnimations", 1);
+
+	//set skin
+	dtData.GetStr("skinpath", tmppath, sizeof(tmppath));
+	if (tmppath[0])
+	{
+		int rDisguiseSkin;
+		CreateWearable(disguiser, tmppath, rDisguiseSkin);
+		g_disguiseWearables.SetNum("skin", rDisguiseSkin);
+		MakePlayerInvisible(disguiser);
+	}
+
+	//add wearables
+	ArrayList equipSlots = dtData.GetFilledSlots();
+	for (int i = 0; i < equipSlots.Length; i++)
+	{
+		int s = equipSlots.Get(i);
+		int rDisguiseEquip;
+
+		GetEntPropString(dtData.GetEquippable(s), Prop_Data, "m_ModelName", tmppath, sizeof(tmppath));
+		CreateWearable(disguiser, tmppath, rDisguiseEquip);
+		
+		char slotStr[MAXINTLENGTH];
+		IntToString(s, slotStr, sizeof(slotStr));
+		g_disguiseWearables.SetNum(slotStr, rDisguiseEquip);
+	}
+
+	delete equipSlots;
+	
+}
+
+void UndisguiseEquips(int client)
+{
+	if (!g_disguiseWearables)
+		g_disguiseWearables = new KeyValues("DisguiseEquips");
+
+	g_disguiseWearables.Rewind();
+
+	//check if its used in disguises
+	char idStr[MAXINTLENGTH];
+	IntToString(GetClientUserId(client), idStr, sizeof(idStr));
+	if (g_disguiseWearables && g_disguiseWearables.JumpToKey(idStr))
+	{
+		//this client has an entry in the disguises kv
+		if (g_disguiseWearables.GotoFirstSubKey(false))
+		{
+			do
+			{
+				int rItem = g_disguiseWearables.GetNum(NULL_STRING)
+				if (IsValidEntity(rItem)) TF2_RemoveWearable(client, EntRefToEntIndex(rItem));
+				if (IsValidEntity(rItem)) RemoveEntity(rItem);
+			} while (g_disguiseWearables.DeleteThis() == 1);
+		}
+		g_disguiseWearables.Rewind();
+		g_disguiseWearables.SetString(idStr, "");
+	}
+
+	SetEquipsHidden(client, false);
+}
+
+void SetEquipsHidden(int client, int hidden)
+{
+	PlayerData pData = PlayerData(client);
+
+	SetItemDraw(pData.rSkinItem, !hidden);
+	
+	//dont need to hide anim/real model, the disguise process already does that
+
+	ArrayList equips = pData.GetFilledSlots();
+
+	for (int i = 0; i < equips.Length; i++)
+		SetItemDraw(pData.GetEquippable(equips.Get(i)), !hidden);
+
+	delete equips;
+}
+
+static void SetItemDraw(int item, int draw)
+{
+	// int eff = GetEntProp(item, Prop_Send, "m_fEffects");
+	// if (draw) eff &= ~EF_NODRAW;
+	// else eff |= EF_NODRAW;
+	// SetEntProp(item, Prop_Send, "m_fEffects", eff);
+
+	if (draw)
+		MakePlayerVisible(item);
+	else
+		MakePlayerInvisible(item);
+}

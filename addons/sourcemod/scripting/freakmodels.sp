@@ -181,7 +181,16 @@ public void OnClientDisconnect(int client)
 {
 	RemoveSkin(client);
 	//dont need to manage the anim; its data is already reset w cleardata
+	PlayerData pData = PlayerData(client);
+	ArrayList equipSlots = pData.GetFilledSlots();
+
+	for (int i = 0; i < equipSlots.Length; i++)
+		RemoveEquippable(client, equipSlots.Get(i));
+
 	PlayerData(client).ClearData();
+
+	g_disguiseTargets[client] = 0;
+	UndisguiseEquips(client);
 }
 
 public void OnEntityDestroyed(int entity)

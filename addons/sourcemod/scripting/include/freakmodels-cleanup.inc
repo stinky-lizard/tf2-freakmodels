@@ -90,6 +90,30 @@ int ItemUsedBy(const int itemReference)
 
 		delete slots;
 
+		if (IsValidClient(i))
+		{
+			//check if its used in disguises
+			char idStr[MAXINTLENGTH];
+			IntToString(GetClientUserId(i), idStr, sizeof(idStr));
+			if (g_disguiseWearables && g_disguiseWearables.JumpToKey(idStr))
+			{
+				//this client has an entry in the disguises kv
+				if (g_disguiseWearables.GotoFirstSubKey(false))
+				{
+					do
+					{
+						//this client has saved items in the disguises kv
+						if (itemReference == g_disguiseWearables.GetNum(NULL_STRING))
+						{
+							usedBy = i;
+							done = true;
+							break;
+						}
+					} while (g_disguiseWearables.GotoNextKey(false));
+				}
+				g_disguiseWearables.Rewind();
+			}
+		}
 		if (done) break;
 	}
 

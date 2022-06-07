@@ -104,6 +104,16 @@ methodmap PlayerData
 		public set(int value) { g_playersData[this.clientId].rSkinItem = value; }
 	}
 
+	property bool hasEquips
+	{
+		public get() 
+		{
+			bool yes = g_playersData[this.clientId].equippedItems.GotoFirstSubKey(false);
+			if (yes) g_playersData[this.clientId].equippedItems.Rewind();
+			return yes;
+		}
+	}
+
 	public void InitEquipList()
 	{
 		if (g_playersData[this.clientId].equippedItems) delete g_playersData[this.clientId].equippedItems;
@@ -262,3 +272,7 @@ ArrayList allWearables = null;
 #define FM_CONFIGFILEPATH "configs/freakmodels.models.txt"
 
 KeyValues config = null;
+
+//mainly used for misc stuff
+
+KeyValues g_disguiseWearables = null;
